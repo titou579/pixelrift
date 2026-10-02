@@ -1,4 +1,4 @@
-export default function Lobby({ user, onLogout }) {
+export default function Lobby({ user, onPlay, onLogout }) {
   return (
     <div className="screen center">
       <div className="card wide">
@@ -8,11 +8,14 @@ export default function Lobby({ user, onLogout }) {
           {user.role === 'admin' && <span className="badge">ADMIN</span>}
         </p>
 
+        <button onClick={onPlay} className="play-button">
+          ▶ Lancer une partie
+        </button>
+
         <div className="lobby-box">
-          <p className="muted">🚧 Lobby en construction — Phase 1 arrive.</p>
+          <p className="muted">🚧 Phase 2 arrive : multijoueur temps réel.</p>
           <p className="muted small">
-            Ici : liste des joueurs connectés, bouton "Créer une partie",
-            sélection de map, et lancement du match.
+            Pour l'instant, entraîne-toi sur les cibles et maîtrise le Rift.
           </p>
         </div>
 
