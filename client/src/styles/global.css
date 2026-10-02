@@ -167,3 +167,16 @@ button.secondary {
   flex-direction: column;
   gap: 0.5rem;
 }
+.play-button {
+  background: linear-gradient(135deg, #00eaff, #8b5cf6, #ff2fb9);
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+  font-size: 1.1rem;
+  padding: 1rem;
+  letter-spacing: 0.1em;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
