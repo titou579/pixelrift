@@ -1,9 +1,4 @@
-
-### 3️⃣ `render.yaml` (racine)
-
-```yaml
 services:
-  # Backend (Web Service)
   - type: web
     name: pixelrift-api
     env: node
@@ -30,7 +25,6 @@ services:
       - key: CLIENT_URL
         sync: false
 
-  # Frontend (Static Site)
   - type: web
     name: pixelrift
     env: static
