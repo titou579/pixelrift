@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import Login from './pages/Login.jsx';
 import Lobby from './pages/Lobby.jsx';
+import Game from './pages/Game.jsx';
 import { me, logout } from './api.js';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('lobby');
 
   useEffect(() => {
     me()
@@ -20,5 +22,13 @@ export default function App() {
 
   if (!user) return <Login onLogin={setUser} />;
 
-  return <Lobby user={user} onLogout={async () => { await logout(); setUser(null); }} />;
+  if (view === 'game') return <Game onExit={() => setView('lobby')} />;
+
+  return (
+    <Lobby
+      user={user}
+      onPlay={() => setView('game')}
+      onLogout={async () => { await logout(); setUser(null); }}
+    />
+  );
 }
