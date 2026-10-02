@@ -86,6 +86,10 @@ export default function GameCanvas({ onExit }) {
     };
   }, []);
 
+  const enterGame = () => {
+    canvasRef.current?.requestPointerLock();
+  };
+
   return (
     <div className="game-container">
       <canvas ref={canvasRef} className="game-canvas" />
@@ -107,7 +111,7 @@ export default function GameCanvas({ onExit }) {
       </div>
 
       {!locked && (
-        <div className="hud-overlay">
+        <div className="hud-overlay" onClick={enterGame}>
           <div className="hud-overlay-content">
             <h2>PIXEL<span>RIFT</span></h2>
             <p className="big">Clique pour jouer</p>
