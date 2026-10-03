@@ -1,3 +1,182 @@
+/* ============ PHASE 1 — MOTEUR DE JEU ============ */
+.game-container {
+  position: fixed;
+  inset: 0;
+  background: #0a0a12;
+  overflow: hidden;
+}
+
+.game-canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #e8e8f0;
+}
+
+.hud-top {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hud-score {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+.hud-score strong {
+  color: #00eaff;
+  font-size: 1.3rem;
+}
+
+.hud-exit {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 47, 185, 0.5);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: #e8e8f0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hud-exit:hover {
+  background: rgba(255, 47, 185, 0.3);
+}
+
+.hud-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #00eaff;
+  font-size: 1.8rem;
+  font-weight: 200;
+  text-shadow: 0 0 8px #00eaff;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.hud-bottom {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hud-rift {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  transition: all 0.3s;
+}
+
+.hud-rift.ready {
+  border-color: #00eaff;
+  color: #00eaff;
+  box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
+}
+
+.hud-rift.cooldown {
+  opacity: 0.5;
+  border-color: #ff2fb9;
+}
+
+.hud-rift .key {
+  display: inline-block;
+  background: rgba(139, 92, 246, 0.4);
+  border: 1px solid rgba(139, 92, 246, 0.7);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-weight: 700;
+  margin-right: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.hud-hint {
+  color: rgba(232, 232, 240, 0.5);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 18, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.hud-overlay-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.hud-overlay-content h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 20px rgba(0, 234, 255, 0.4);
+}
+
+.hud-overlay-content h2 span {
+  color: #ff2fb9;
+  text-shadow: 0 0 20px rgba(255, 47, 185, 0.6);
+}
+
+.hud-overlay-content .big {
+  font-size: 1.2rem;
+  color: #00eaff;
+  letter-spacing: 0.1em;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.hud-overlay-content .small {
+  font-size: 0.85rem;
+  color: #7a7a92;
+  line-height: 1.8;
+}
+
+.hud-overlay-content .small strong {
+  color: #e8e8f0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 /* ============ PHASE 3 — COMBAT ============ */
 .hud-left {
   display: flex;
