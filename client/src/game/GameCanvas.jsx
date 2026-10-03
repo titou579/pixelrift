@@ -8,7 +8,7 @@ import { createRemotePlayersManager } from './remotePlayers.js';
 import { getSocket } from '../socket.js';
 import '../styles/game.css';
 
-export default function GameCanvas({ user, onExit }) {
+export default function GameCanvas({ user, roomCode, onExit }) {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
   const [locked, setLocked] = useState(false);
@@ -38,6 +38,19 @@ export default function GameCanvas({ user, onExit }) {
 
     weapon.onHit((s) => setScore(s));
 
+    // --- Fonction pour réintégrer le salon ---
+    function rejoinRoom() {
+      if (!roomCode) return;
+      console.log('🔄 Réintégration du salon', roomCode);
+      socket.emit('room:join', { code: roomCode, username: user.username }, (res) => {
+        if (res?.error) {
+          console.warn('Reconnexion échouée:', res.error);
+          return;
+        }
+        socket.emit('match:enter');
+      });
+    }
+
     // --- Socket listeners ---
     const onPlayerJoined = (p) => {
       if (p.username === user.username) return;
@@ -48,6 +61,7 @@ export default function GameCanvas({ user, onExit }) {
       remotes.update(id, position, rotation);
 
     const onMatchEntered = ({ players }) => {
+      remotes.clear();
       for (const p of players) {
         if (p.id === socket.id) continue;
         remotes.add(p.id, p.username, p.position, p.rotation);
@@ -62,18 +76,15 @@ export default function GameCanvas({ user, onExit }) {
       setRewards(null);
       setTimeLeft(tl != null ? Math.floor(tl / 1000) : Math.floor(duration / 1000));
     };
-
     const onMatchEnded = ({ results }) => {
       setMatchStatus('ended');
       setMatchEnd(results);
     };
-
     const onMatchReset = () => {
       setMatchStatus('waiting');
       setMatchEnd(null);
       setRewards(null);
     };
-
     const onMatchRewards = (data) => {
       setRewards({ xpGain: data.xpGain, coinGain: data.coinGain });
     };
@@ -82,7 +93,6 @@ export default function GameCanvas({ user, onExit }) {
       if (targetId === socket.id) setMyHp(hp);
       else remotes.setHp(targetId, hp);
     };
-
     const onPlayerDied = ({ id, username, killerName }) => {
       setKillFeed((prev) => [
         ...prev.slice(-4),
@@ -98,7 +108,6 @@ export default function GameCanvas({ user, onExit }) {
         remotes.kill(id);
       }
     };
-
     const onPlayerRespawned = ({ id, position }) => {
       if (id === socket.id) {
         player.state.position.set(position.x, position.y, position.z);
@@ -110,6 +119,17 @@ export default function GameCanvas({ user, onExit }) {
       }
     };
 
+    // --- Reconnexion socket.io ---
+    const onConnect = () => {
+      console.log('✅ Socket connecté, réintégration...');
+      rejoinRoom();
+    };
+    const onDisconnect = (reason) => {
+      console.warn('⚠️ Socket déconnecté:', reason);
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
     socket.on('player:joined', onPlayerJoined);
     socket.on('player:left', onPlayerLeft);
     socket.on('player:state', onPlayerState);
@@ -123,12 +143,14 @@ export default function GameCanvas({ user, onExit }) {
     socket.on('player:died', onPlayerDied);
     socket.on('player:respawned', onPlayerRespawned);
 
-    // --- Maintenant que les listeners sont prêts, on entre en jeu ---
-    socket.emit('match:enter');
+    // --- Entrée initiale dans le match ---
+    if (socket.connected) {
+      rejoinRoom();
+    }
 
     // --- Envoi de la position à 20 Hz ---
     const sendState = setInterval(() => {
-      if (!player.state.position) return;
+      if (!player.state.position || !socket.connected) return;
       socket.emit('player:state', {
         position: {
           x: player.state.position.x,
@@ -151,7 +173,7 @@ export default function GameCanvas({ user, onExit }) {
     const respawnInt = setInterval(() => {
       setRespawnIn((r) => {
         if (r <= 1) {
-          if (r === 1) socket.emit('player:respawn');
+          if (r === 1 && socket.connected) socket.emit('player:respawn');
           return 0;
         }
         return r - 1;
@@ -164,7 +186,7 @@ export default function GameCanvas({ user, onExit }) {
       if (e.button === 0) {
         weapon.shoot(targets);
         const hitId = remotes.raycast(camera);
-        if (hitId) {
+        if (hitId && socket.connected) {
           socket.emit('player:shoot', { targetId: hitId });
         }
       }
@@ -175,30 +197,21 @@ export default function GameCanvas({ user, onExit }) {
       if (e.code === 'KeyE') {
         const ok = rift.use();
         if (ok) {
-          socket.emit('player:rift');
+          if (socket.connected) socket.emit('player:rift');
           setRiftReady(false);
           setTimeout(() => setRiftReady(true), 4000);
         }
       }
-      if (e.code === 'Escape') {
-        document.exitPointerLock();
-      }
-      if (e.code === 'Tab') {
-        e.preventDefault();
-        setShowScoreboard(true);
-      }
+      if (e.code === 'Escape') document.exitPointerLock();
+      if (e.code === 'Tab') { e.preventDefault(); setShowScoreboard(true); }
     };
     const onKeyUp = (e) => {
-      if (e.code === 'Tab') {
-        e.preventDefault();
-        setShowScoreboard(false);
-      }
+      if (e.code === 'Tab') { e.preventDefault(); setShowScoreboard(false); }
     };
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
 
-    const onLockChange = () =>
-      setLocked(document.pointerLockElement === canvas);
+    const onLockChange = () => setLocked(document.pointerLockElement === canvas);
     document.addEventListener('pointerlockchange', onLockChange);
 
     const onResize = () => {
@@ -208,7 +221,6 @@ export default function GameCanvas({ user, onExit }) {
     };
     window.addEventListener('resize', onResize);
 
-    // --- Boucle ---
     let raf;
     let last = performance.now();
     function loop() {
@@ -233,6 +245,8 @@ export default function GameCanvas({ user, onExit }) {
       clearInterval(timerInt);
       clearInterval(respawnInt);
       socket.emit('match:leave');
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('player:joined', onPlayerJoined);
       socket.off('player:left', onPlayerLeft);
       socket.off('player:state', onPlayerState);
@@ -255,7 +269,7 @@ export default function GameCanvas({ user, onExit }) {
       document.exitPointerLock();
       renderer.dispose();
     };
-  }, [user.username]);
+  }, [user.username, roomCode]);
 
   const enterGame = () => canvasRef.current?.requestPointerLock();
 
