@@ -9,6 +9,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('lobby');
+  const [roomCode, setRoomCode] = useState(null);
 
   useEffect(() => {
     me()
@@ -24,7 +25,13 @@ export default function App() {
   if (!user) return <Login onLogin={setUser} />;
 
   if (view === 'game') {
-    return <Game user={user} onExit={() => setView('lobby')} />;
+    return (
+      <Game
+        user={user}
+        roomCode={roomCode}
+        onExit={() => setView('lobby')}
+      />
+    );
   }
 
   if (view === 'profile') {
@@ -34,7 +41,7 @@ export default function App() {
   return (
     <Lobby
       user={user}
-      onPlay={() => setView('game')}
+      onPlay={(code) => { setRoomCode(code); setView('game'); }}
       onProfile={() => setView('profile')}
       onLogout={async () => { await logout(); setUser(null); }}
     />
