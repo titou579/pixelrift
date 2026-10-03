@@ -22,6 +22,7 @@ export default function GameCanvas({ user, onExit }) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [respawnIn, setRespawnIn] = useState(0);
+  const [rewards, setRewards] = useState(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,21 +59,30 @@ export default function GameCanvas({ user, onExit }) {
     const onMatchStarted = ({ duration, timeLeft: tl }) => {
       setMatchStatus('playing');
       setMatchEnd(null);
+      setRewards(null);
       setTimeLeft(tl != null ? Math.floor(tl / 1000) : Math.floor(duration / 1000));
     };
+
     const onMatchEnded = ({ results }) => {
       setMatchStatus('ended');
       setMatchEnd(results);
     };
+
     const onMatchReset = () => {
       setMatchStatus('waiting');
       setMatchEnd(null);
+      setRewards(null);
+    };
+
+    const onMatchRewards = (data) => {
+      setRewards({ xpGain: data.xpGain, coinGain: data.coinGain });
     };
 
     const onPlayerHit = ({ targetId, hp }) => {
       if (targetId === socket.id) setMyHp(hp);
       else remotes.setHp(targetId, hp);
     };
+
     const onPlayerDied = ({ id, username, killerName }) => {
       setKillFeed((prev) => [
         ...prev.slice(-4),
@@ -88,6 +98,7 @@ export default function GameCanvas({ user, onExit }) {
         remotes.kill(id);
       }
     };
+
     const onPlayerRespawned = ({ id, position }) => {
       if (id === socket.id) {
         player.state.position.set(position.x, position.y, position.z);
@@ -107,6 +118,7 @@ export default function GameCanvas({ user, onExit }) {
     socket.on('match:started', onMatchStarted);
     socket.on('match:ended', onMatchEnded);
     socket.on('match:reset', onMatchReset);
+    socket.on('match:rewards', onMatchRewards);
     socket.on('player:hit', onPlayerHit);
     socket.on('player:died', onPlayerDied);
     socket.on('player:respawned', onPlayerRespawned);
@@ -163,6 +175,7 @@ export default function GameCanvas({ user, onExit }) {
       if (e.code === 'KeyE') {
         const ok = rift.use();
         if (ok) {
+          socket.emit('player:rift');
           setRiftReady(false);
           setTimeout(() => setRiftReady(true), 4000);
         }
@@ -228,6 +241,7 @@ export default function GameCanvas({ user, onExit }) {
       socket.off('match:started', onMatchStarted);
       socket.off('match:ended', onMatchEnded);
       socket.off('match:reset', onMatchReset);
+      socket.off('match:rewards', onMatchRewards);
       socket.off('player:hit', onPlayerHit);
       socket.off('player:died', onPlayerDied);
       socket.off('player:respawned', onPlayerRespawned);
@@ -340,6 +354,11 @@ export default function GameCanvas({ user, onExit }) {
                 ))}
               </tbody>
             </table>
+            {rewards && (
+              <p className="match-rewards">
+                🎁 +{rewards.xpGain} XP · +{rewards.coinGain} 💰
+              </p>
+            )}
             <p className="muted">Nouveau match dans quelques secondes…</p>
           </div>
         </div>
