@@ -139,7 +139,9 @@ export default function Lobby({ user, onPlay, onLogout, onProfile }) {
           </form>
         </div>
 
-        <button className="play-button" onClick={onPlay}>▶ Lancer la partie</button>
+        <button className="play-button" onClick={() => onPlay(roomCode)}>
+          ▶ Lancer la partie
+        </button>
       </div>
     </div>
   );
