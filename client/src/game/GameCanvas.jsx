@@ -4,9 +4,11 @@ import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createWeapon, createTargets } from './weapon.js';
 import { createRift } from './rift.js';
+import { createRemotePlayersManager } from './remotePlayers.js';
+import { getSocket } from '../socket.js';
 import '../styles/game.css';
 
-export default function GameCanvas({ onExit }) {
+export default function GameCanvas({ user, onExit }) {
   const canvasRef = useRef(null);
   const [score, setScore] = useState(0);
   const [locked, setLocked] = useState(false);
@@ -14,15 +16,47 @@ export default function GameCanvas({ onExit }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    const socket = getSocket();
+
     const { renderer, scene, camera } = createEngine(canvas);
     const { colliders } = buildWorld(scene);
     const player = createPlayer(camera, canvas, colliders);
     const weapon = createWeapon(scene, camera);
     const targets = createTargets(scene);
     const rift = createRift(scene, camera, player);
+    const remotes = createRemotePlayersManager(scene);
 
     weapon.onHit((s) => setScore(s));
 
+    // --- Socket : réception des autres joueurs ---
+    const onPlayerJoined = (p) => {
+      if (p.username === user.username) return;
+      remotes.add(p.id, p.username, p.position, p.rotation);
+    };
+    const onPlayerLeft = ({ id }) => remotes.remove(id);
+    const onPlayerState = ({ id, position, rotation }) =>
+      remotes.update(id, position, rotation);
+
+    socket.on('player:joined', onPlayerJoined);
+    socket.on('player:left', onPlayerLeft);
+    socket.on('player:state', onPlayerState);
+
+    // --- Socket : envoi de notre position à 20Hz ---
+    const sendState = setInterval(() => {
+      socket.emit('player:state', {
+        position: {
+          x: player.state.position.x,
+          y: player.state.position.y,
+          z: player.state.position.z,
+        },
+        rotation: {
+          yaw: player.state.yaw,
+          pitch: player.state.pitch,
+        },
+      });
+    }, 50);
+
+    // --- Contrôles ---
     const onMouseDown = (e) => {
       if (document.pointerLockElement !== canvas) return;
       if (e.button === 0) weapon.shoot(targets);
@@ -54,6 +88,7 @@ export default function GameCanvas({ onExit }) {
     };
     window.addEventListener('resize', onResize);
 
+    // --- Boucle principale ---
     let raf;
     let last = performance.now();
     function loop() {
@@ -63,6 +98,7 @@ export default function GameCanvas({ onExit }) {
 
       player.update(dt);
       rift.update(dt);
+      remotes.tick(dt);
 
       for (const t of targets) {
         t.rotation.y += t.userData.spinSpeed * dt;
@@ -76,15 +112,20 @@ export default function GameCanvas({ onExit }) {
 
     return () => {
       cancelAnimationFrame(raf);
+      clearInterval(sendState);
+      socket.off('player:joined', onPlayerJoined);
+      socket.off('player:left', onPlayerLeft);
+      socket.off('player:state', onPlayerState);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('pointerlockchange', onLockChange);
       window.removeEventListener('resize', onResize);
+      remotes.clear();
       player.dispose();
       document.exitPointerLock();
       renderer.dispose();
     };
-  }, []);
+  }, [user.username]);
 
   const enterGame = () => {
     canvasRef.current?.requestPointerLock();
