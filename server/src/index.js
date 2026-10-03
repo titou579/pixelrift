@@ -2,18 +2,31 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import crypto from 'crypto';
+import http from 'http';
+import { Server } from 'socket.io';
 
 import { authenticate, getSession, createSession, destroySession } from './auth.js';
+import { setupGameServer } from './gameServer.js';
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+// --- Socket.io ---
+const io = new Server(server, {
+  cors: {
+    origin: CLIENT_URL,
+    credentials: true,
+  },
+});
+setupGameServer(io);
 
 // --- Middlewares ---
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: CLIENT_URL,
   credentials: true,
 }));
 
@@ -39,13 +52,13 @@ app.post('/api/login', (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
+    maxAge: 1000 * 60 * 60 * 24 * 7,
   });
 
   res.json({ user });
 });
 
-// --- Auth: me (récupère le user de la session) ---
+// --- Auth: me ---
 app.get('/api/me', (req, res) => {
   const session = getSession(req.cookies?.session);
   if (!session) return res.status(401).json({ error: 'Non connecté.' });
@@ -62,6 +75,6 @@ app.post('/api/logout', (req, res) => {
 // --- 404 ---
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🌌 PIXELRIFT API — listening on port ${PORT}`);
 });
