@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Login from './pages/Login.jsx';
 import Lobby from './pages/Lobby.jsx';
 import Game from './pages/Game.jsx';
+import Profile from './pages/Profile.jsx';
 import { me, logout } from './api.js';
 
 export default function App() {
@@ -26,10 +27,15 @@ export default function App() {
     return <Game user={user} onExit={() => setView('lobby')} />;
   }
 
+  if (view === 'profile') {
+    return <Profile user={user} onBack={() => setView('lobby')} />;
+  }
+
   return (
     <Lobby
       user={user}
       onPlay={() => setView('game')}
+      onProfile={() => setView('profile')}
       onLogout={async () => { await logout(); setUser(null); }}
     />
   );
