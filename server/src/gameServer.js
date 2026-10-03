@@ -9,6 +9,7 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MATCH_DURATION = 5 * 60 * 1000;
 const KILL_TARGET = 15;
 const END_SCREEN_DURATION = 10000;
+const GHOST_TIMEOUT = 5000;
 
 function generateCode() {
   let code;
@@ -86,7 +87,6 @@ export function setupGameServer(io) {
 
     const winnerUsername = list[0]?.username;
 
-    // --- Récompenses ---
     for (const p of list) {
       const rewards = applyMatchRewards(p.username, {
         kills: p.kills,
@@ -117,6 +117,7 @@ export function setupGameServer(io) {
     }, END_SCREEN_DURATION);
   }
 
+  // Vérifie la fin de match par timer
   setInterval(() => {
     for (const [code, room] of rooms) {
       if (
@@ -127,6 +128,29 @@ export function setupGameServer(io) {
       }
     }
   }, 1000);
+
+  // 🧹 Watchdog : supprime les joueurs inactifs (fantômes)
+  setInterval(() => {
+    const now = Date.now();
+    for (const [code, room] of rooms) {
+      let changed = false;
+      for (const [socketId, p] of Array.from(room.players)) {
+        if (p.inGame && p.lastSeen && now - p.lastSeen > GHOST_TIMEOUT) {
+          console.log(`🧹 Fantôme supprimé : ${p.username} (${socketId})`);
+          room.players.delete(socketId);
+          room.scores.delete(socketId);
+          room.deaths.delete(socketId);
+          io.to(code).emit('player:left', { id: socketId });
+          changed = true;
+        }
+      }
+      if (room.players.size === 0) {
+        rooms.delete(code);
+      } else if (changed) {
+        broadcastScores(code);
+      }
+    }
+  }, 3000);
 
   io.on('connection', (socket) => {
     let currentRoom = null;
@@ -147,6 +171,18 @@ export function setupGameServer(io) {
     function joinRoom(code, username, cb) {
       if (currentRoom) leaveRoom();
       const room = rooms.get(code);
+
+      // 🧹 Kick les éventuels fantômes du même username
+      for (const [oldId, oldP] of Array.from(room.players)) {
+        if (oldP.username === username) {
+          console.log(`🧹 Remplacement du fantôme ${username} (${oldId})`);
+          room.players.delete(oldId);
+          room.scores.delete(oldId);
+          room.deaths.delete(oldId);
+          io.to(code).emit('player:left', { id: oldId });
+        }
+      }
+
       const profile = getOrCreateProfile(username);
       const playerData = {
         id: socket.id,
@@ -157,6 +193,7 @@ export function setupGameServer(io) {
         alive: true,
         inGame: false,
         skin: profile.equippedSkin,
+        lastSeen: Date.now(),
       };
       room.players.set(socket.id, playerData);
       room.scores.set(socket.id, 0);
@@ -183,6 +220,7 @@ export function setupGameServer(io) {
       p.inGame = true;
       p.hp = 100;
       p.alive = true;
+      p.lastSeen = Date.now();
 
       const others = Array.from(room.players.values()).filter(
         (x) => x.id !== socket.id
@@ -221,6 +259,7 @@ export function setupGameServer(io) {
       if (!p || !p.alive) return;
       p.position = position;
       p.rotation = rotation;
+      p.lastSeen = Date.now();
       socket.to(currentRoom).emit('player:state', {
         id: socket.id,
         position,
@@ -278,6 +317,7 @@ export function setupGameServer(io) {
         y: 1.7,
         z: (Math.random() - 0.5) * 30,
       };
+      p.lastSeen = Date.now();
       io.to(currentRoom).emit('player:respawned', {
         id: socket.id,
         position: p.position,
