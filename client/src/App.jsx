@@ -22,7 +22,9 @@ export default function App() {
 
   if (!user) return <Login onLogin={setUser} />;
 
-  if (view === 'game') return <Game onExit={() => setView('lobby')} />;
+  if (view === 'game') {
+    return <Game user={user} onExit={() => setView('lobby')} />;
+  }
 
   return (
     <Lobby
