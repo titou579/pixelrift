@@ -1,3 +1,9 @@
+import {
+  applyMatchRewards,
+  registerRiftUse,
+  getOrCreateProfile,
+} from './dataManager.js';
+
 const rooms = new Map();
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MATCH_DURATION = 5 * 60 * 1000;
@@ -68,6 +74,7 @@ export function setupGameServer(io) {
     const room = rooms.get(code);
     if (!room || room.matchStatus !== 'playing') return;
     room.matchStatus = 'ended';
+
     const list = Array.from(room.players.values())
       .map((p) => ({
         id: p.id,
@@ -76,8 +83,25 @@ export function setupGameServer(io) {
         deaths: room.deaths.get(p.id) || 0,
       }))
       .sort((a, b) => b.kills - a.kills);
+
+    const winnerUsername = list[0]?.username;
+
+    // --- Récompenses ---
+    for (const p of list) {
+      const rewards = applyMatchRewards(p.username, {
+        kills: p.kills,
+        deaths: p.deaths,
+        isWinner: p.username === winnerUsername,
+      });
+      io.to(p.id).emit('match:rewards', {
+        xpGain: rewards.xpGain,
+        coinGain: rewards.coinGain,
+        profile: rewards.profile,
+      });
+    }
+
     io.to(code).emit('match:ended', { results: list });
-    console.log(`🏆 Match terminé dans ${code}`);
+    console.log(`🏆 Match terminé dans ${code} — Vainqueur: ${winnerUsername}`);
 
     setTimeout(() => {
       if (!rooms.has(code)) return;
@@ -123,6 +147,7 @@ export function setupGameServer(io) {
     function joinRoom(code, username, cb) {
       if (currentRoom) leaveRoom();
       const room = rooms.get(code);
+      const profile = getOrCreateProfile(username);
       const playerData = {
         id: socket.id,
         username,
@@ -131,6 +156,7 @@ export function setupGameServer(io) {
         hp: 100,
         alive: true,
         inGame: false,
+        skin: profile.equippedSkin,
       };
       room.players.set(socket.id, playerData);
       room.scores.set(socket.id, 0);
@@ -158,7 +184,6 @@ export function setupGameServer(io) {
       p.hp = 100;
       p.alive = true;
 
-      // NOUVEAU : envoie au nouveau joueur tous les autres joueurs déjà présents
       const others = Array.from(room.players.values()).filter(
         (x) => x.id !== socket.id
       );
@@ -257,6 +282,14 @@ export function setupGameServer(io) {
         id: socket.id,
         position: p.position,
       });
+    });
+
+    socket.on('player:rift', () => {
+      if (!currentRoom) return;
+      const room = rooms.get(currentRoom);
+      const p = room?.players.get(socket.id);
+      if (!p) return;
+      registerRiftUse(p.username);
     });
 
     socket.on('chat:message', ({ text }) => {
