@@ -312,3 +312,224 @@ button.secondary {
   background: linear-gradient(135deg, #8b5cf6, #00eaff);
   box-shadow: none;
 }
+/* ============ PHASE 4 — PROGRESSION ============ */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-coins {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffd93d;
+  text-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 0.4rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.8rem;
+  color: #7a7a92;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover { color: #e8e8f0; }
+
+.tab-btn.active {
+  color: #00eaff;
+  border-color: rgba(0, 234, 255, 0.4);
+  background: rgba(0, 234, 255, 0.08);
+  box-shadow: none;
+}
+
+.profile-msg {
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  background: rgba(0, 234, 255, 0.1);
+  border-radius: 6px;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+
+.xp-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.xp-bar {
+  width: 100%;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6, #00eaff);
+  transition: width 0.3s;
+}
+
+.xp-label {
+  font-size: 0.85rem;
+  color: #7a7a92;
+  text-align: center;
+}
+
+.xp-label strong { color: #00eaff; font-size: 1.1rem; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.stat-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #00eaff;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #7a7a92;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.shop-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shop-item.equipped {
+  border-color: #00eaff;
+  box-shadow: 0 0 12px rgba(0, 234, 255, 0.3);
+}
+
+.shop-preview {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.shop-name { font-weight: 700; font-size: 0.9rem; }
+.shop-desc { font-size: 0.7rem; color: #7a7a92; }
+.shop-status { font-size: 0.75rem; color: #00eaff; }
+
+.pass-tier {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+}
+
+.pass-tier.unlocked {
+  border-color: #ffd93d;
+  box-shadow: 0 0 12px rgba(255, 217, 61, 0.3);
+}
+
+.pass-tier.claimed {
+  opacity: 0.5;
+  border-color: rgba(0, 234, 255, 0.3);
+}
+
+.tier-num {
+  font-weight: 800;
+  color: #8b5cf6;
+  min-width: 70px;
+  font-size: 0.85rem;
+}
+
+.tier-info { flex: 1; }
+.tier-reward { font-size: 0.85rem; font-weight: 600; }
+.tier-xp { font-size: 0.7rem; color: #7a7a92; }
+.tier-status { color: #00eaff; font-size: 1.1rem; }
+.tier-lock { font-size: 1.1rem; opacity: 0.5; }
+
+.quest-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+}
+
+.quest-item.done { border-color: #ffd93d; }
+.quest-item.claimed { opacity: 0.5; }
+
+.quest-info { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
+.quest-desc { font-size: 0.9rem; font-weight: 600; }
+
+.quest-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quest-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6, #00eaff);
+  transition: width 0.3s;
+}
+
+.quest-progress-text {
+  font-size: 0.7rem;
+  color: #7a7a92;
+}
+
+.quest-reward {
+  font-size: 0.7rem;
+  color: #ffd93d;
+}
