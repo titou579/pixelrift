@@ -20,7 +20,10 @@ import {
   claimQuest,
   claimBattlePassTier,
   levelFromXp,
+  getPlayerCount,
+  replaceAllPlayers,
 } from './dataManager.js';
+import { downloadFromCloud, startPeriodicCloudBackup } from './cloudBackup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,7 +64,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', game: 'PIXELRIFT', time: new Date().toISOString() });
 });
 
-// --- BACKUP (protégé par token) ---
 const DATA_FILE = path.join(__dirname, '..', 'data', 'players.json');
 
 app.get('/api/backup/download', requireBackupToken, (_req, res) => {
@@ -82,14 +84,10 @@ app.post('/api/backup/upload', requireBackupToken, (req, res) => {
   if (!players || typeof players !== 'object') {
     return res.status(400).json({ error: 'Format invalide (players attendu).' });
   }
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(players, null, 2));
-  console.log(`💾 Backup restauré manuellement (${Object.keys(players).length} profils)`);
+  replaceAllPlayers(players);
   res.json({ ok: true, count: Object.keys(players).length });
 });
 
-// --- Auth ---
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Requis.' });
@@ -119,13 +117,11 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// --- Profil ---
 app.get('/api/profile', requireAuth, (req, res) => {
   const profile = getOrCreateProfile(req.user.username);
   res.json({ profile, level: levelFromXp(profile.xp) });
 });
 
-// --- Shop ---
 app.get('/api/shop', requireAuth, (_req, res) => {
   res.json({ items: SHOP_ITEMS });
 });
@@ -144,7 +140,6 @@ app.post('/api/shop/equip', requireAuth, (req, res) => {
   res.json({ profile: result.profile });
 });
 
-// --- Quêtes ---
 app.post('/api/quests/claim', requireAuth, (req, res) => {
   const { questId } = req.body || {};
   const result = claimQuest(req.user.username, questId);
@@ -152,7 +147,6 @@ app.post('/api/quests/claim', requireAuth, (req, res) => {
   res.json({ profile: result.profile });
 });
 
-// --- Battle Pass ---
 app.get('/api/pass', requireAuth, (req, res) => {
   const profile = getOrCreateProfile(req.user.username);
   res.json({ tiers: BATTLE_PASS_TIERS, claimedTiers: profile.battlePass.claimedTiers });
@@ -166,6 +160,22 @@ app.post('/api/pass/claim', requireAuth, (req, res) => {
 });
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+
+// --- Init cloud backup ---
+(async () => {
+  if (getPlayerCount() === 0) {
+    console.log('📦 Base locale vide, tentative de restauration depuis le cloud...');
+    const cloudPlayers = await downloadFromCloud();
+    if (cloudPlayers) {
+      replaceAllPlayers(cloudPlayers);
+    } else {
+      console.log('📦 Cloud vide aussi — démarrage à zéro');
+    }
+  } else {
+    console.log(`📦 Base locale chargée (${getPlayerCount()} joueurs)`);
+  }
+  startPeriodicCloudBackup();
+})();
 
 server.listen(PORT, () => {
   console.log(`🌌 PIXELRIFT API — listening on port ${PORT}`);
