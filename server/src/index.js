@@ -3,6 +3,9 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
 
 import { authenticate, getSession, createSession, destroySession } from './auth.js';
@@ -19,10 +22,14 @@ import {
   levelFromXp,
 } from './dataManager.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const BACKUP_TOKEN = process.env.BACKUP_TOKEN || 'change_me_backup_token';
 
 loadPlayers();
 
@@ -31,11 +38,10 @@ const io = new Server(server, {
 });
 setupGameServer(io);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 
-// --- Middleware auth ---
 function requireAuth(req, res, next) {
   const session = getSession(req.cookies?.session);
   if (!session) return res.status(401).json({ error: 'Non connecté.' });
@@ -43,9 +49,44 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// --- Health ---
+function requireBackupToken(req, res, next) {
+  const token = req.headers['x-backup-token'] || req.query.token;
+  if (token !== BACKUP_TOKEN) {
+    return res.status(403).json({ error: 'Token invalide.' });
+  }
+  next();
+}
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', game: 'PIXELRIFT', time: new Date().toISOString() });
+});
+
+// --- BACKUP (protégé par token) ---
+const DATA_FILE = path.join(__dirname, '..', 'data', 'players.json');
+
+app.get('/api/backup/download', requireBackupToken, (_req, res) => {
+  if (!fs.existsSync(DATA_FILE)) {
+    return res.json({ players: {}, empty: true });
+  }
+  try {
+    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+    const players = JSON.parse(raw);
+    res.json({ players, count: Object.keys(players).length, time: Date.now() });
+  } catch (e) {
+    res.status(500).json({ error: 'Erreur lecture backup: ' + e.message });
+  }
+});
+
+app.post('/api/backup/upload', requireBackupToken, (req, res) => {
+  const { players } = req.body || {};
+  if (!players || typeof players !== 'object') {
+    return res.status(400).json({ error: 'Format invalide (players attendu).' });
+  }
+  const dir = path.dirname(DATA_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(DATA_FILE, JSON.stringify(players, null, 2));
+  console.log(`💾 Backup restauré manuellement (${Object.keys(players).length} profils)`);
+  res.json({ ok: true, count: Object.keys(players).length });
 });
 
 // --- Auth ---
@@ -85,7 +126,7 @@ app.get('/api/profile', requireAuth, (req, res) => {
 });
 
 // --- Shop ---
-app.get('/api/shop', requireAuth, (req, res) => {
+app.get('/api/shop', requireAuth, (_req, res) => {
   res.json({ items: SHOP_ITEMS });
 });
 
