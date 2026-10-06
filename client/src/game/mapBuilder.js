@@ -1,35 +1,40 @@
 import * as THREE from 'three';
 import { loadModel, cloneModel } from './assetLoader.js';
-import { MAP_CONFIG } from './mapConfig.js';
+import { MAP_CONFIG, FLOOR_ZONES } from './mapConfig.js';
 
-/**
- * Construit la map complète à partir de MAP_CONFIG.
- * @returns {Promise<{ colliders: THREE.Box3[] }>}
- */
 export async function buildMapFromModels(scene) {
   const colliders = [];
 
-  // 1. Sol (damier sombre pour le moment)
-  const floorGeo = new THREE.PlaneGeometry(100, 100);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a2e,
-    roughness: 0.85,
-    metalness: 0.1,
-  });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
+  // 1. Sol de base (grand, sombre)
+  const baseFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(140, 140),
+    new THREE.MeshStandardMaterial({ color: 0x0f0f1a, roughness: 0.9 })
+  );
+  baseFloor.rotation.x = -Math.PI / 2;
+  baseFloor.receiveShadow = true;
+  scene.add(baseFloor);
 
-  // Grille néon subtile par-dessus
-  // Grid désactivé pour la perf (trop de lignes = chute de FPS)
-  // const grid = new THREE.GridHelper(100, 50, 0x8b5cf6, 0x2a2a3e);
-  // grid.position.y = 0.01;
-  // grid.material.opacity = 0.3;
-  // grid.material.transparent = true;
-  // scene.add(grid);
+  // 2. Zones colorées (eau, jardin, routes, place)
+  if (FLOOR_ZONES && FLOOR_ZONES.length > 0) {
+    for (const zone of FLOOR_ZONES) {
+      const geo = new THREE.PlaneGeometry(zone.w, zone.d);
+      const mat = new THREE.MeshStandardMaterial({
+        color: zone.color,
+        roughness: zone.type === 'water' ? 0.3 : 0.9,
+        metalness: zone.type === 'water' ? 0.6 : 0.1,
+        transparent: zone.type === 'water',
+        opacity: zone.type === 'water' ? 0.85 : 1,
+        emissive: zone.type === 'water' ? 0x0a2a4a : 0x000000,
+        emissiveIntensity: zone.type === 'water' ? 0.3 : 0,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(zone.x, zone.y || 0.02, zone.z);
+      scene.add(mesh);
+    }
+  }
 
-  // 2. Collecte TOUS les modèles à charger (sans doublons)
+  // 3. Collecte tous les modèles à charger (sans doublons)
   const allPaths = new Set();
   for (const category of Object.keys(MAP_CONFIG)) {
     for (const entry of MAP_CONFIG[category]) {
@@ -37,7 +42,6 @@ export async function buildMapFromModels(scene) {
     }
   }
 
-  // 3. Préchargement en parallèle
   console.log(`📦 Chargement de ${allPaths.size} modèles...`);
   const loadPromises = Array.from(allPaths).map((p) => loadModel(p));
   await Promise.allSettled(loadPromises);
@@ -56,7 +60,6 @@ export async function buildMapFromModels(scene) {
         clone.scale.setScalar(scale);
         scene.add(clone);
 
-        // Créer un collider (Box3) pour chaque objet
         const box = new THREE.Box3().setFromObject(clone);
         colliders.push(box);
       } catch (e) {
@@ -66,6 +69,5 @@ export async function buildMapFromModels(scene) {
   }
 
   console.log(`🗺️  Map construite : ${colliders.length} colliders`);
-
   return { colliders };
 }
