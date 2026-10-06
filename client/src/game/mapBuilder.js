@@ -22,11 +22,12 @@ export async function buildMapFromModels(scene) {
   scene.add(floor);
 
   // Grille néon subtile par-dessus
-  const grid = new THREE.GridHelper(100, 50, 0x8b5cf6, 0x2a2a3e);
-  grid.position.y = 0.01;
-  grid.material.opacity = 0.3;
-  grid.material.transparent = true;
-  scene.add(grid);
+  // Grid désactivé pour la perf (trop de lignes = chute de FPS)
+  // const grid = new THREE.GridHelper(100, 50, 0x8b5cf6, 0x2a2a3e);
+  // grid.position.y = 0.01;
+  // grid.material.opacity = 0.3;
+  // grid.material.transparent = true;
+  // scene.add(grid);
 
   // 2. Collecte TOUS les modèles à charger (sans doublons)
   const allPaths = new Set();
