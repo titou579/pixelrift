@@ -4,9 +4,9 @@ const loader = new GLTFLoader();
 const cache = new Map();
 
 /**
- * Charge un modèle .glb
- * @param {string} path - Chemin relatif dans /public, ex: 'models/buildings/House.glb'
- * @returns {Promise<THREE.Group>} - Le groupe Three.js prêt à cloner
+ * Charge un modèle .glb depuis /public/models/
+ * @param {string} path - Chemin relatif SANS "models/", ex: 'buildings/House.glb'
+ * @returns {Promise<THREE.Group>}
  */
 export function loadModel(path) {
   if (cache.has(path)) {
@@ -14,8 +14,17 @@ export function loadModel(path) {
   }
   return new Promise((resolve, reject) => {
     loader.load(
-      `/${path}`,
+      `/models/${path}`,
       (gltf) => {
+        // Optimisation : désactive les ombres sur les gros objets pour la perf
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = false;
+            child.receiveShadow = false;
+            // Figé pour économiser du CPU
+            child.matrixAutoUpdate = false;
+          }
+        });
         cache.set(path, gltf.scene);
         resolve(gltf.scene);
       },
@@ -30,16 +39,17 @@ export function loadModel(path) {
 
 /**
  * Clone un modèle chargé (pour placer plusieurs instances)
- * Clone récursivement les meshes pour que chaque instance soit indépendante
  */
 export function cloneModel(model) {
   const clone = model.clone(true);
   clone.traverse((child) => {
     if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
+      child.castShadow = false;
+      child.receiveShadow = false;
+      child.matrixAutoUpdate = false;
     }
   });
+  clone.updateMatrixWorld(true);
   return clone;
 }
 
