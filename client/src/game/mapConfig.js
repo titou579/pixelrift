@@ -1,128 +1,160 @@
 // ============================================================
-// CONFIG DE LA MAP — "Place de village post-apo"
-// Format: [modele, x, y, z, rotationY?, scale?]
-//   - x, z : position (mètres) — le centre est (0, 0)
-//   - y    : hauteur (0 = sol)
-//   - rotY : rotation en radians
-//   - scale: multiplicateur de taille
+// CONFIG DE LA MAP — "Village post-apo organisé"
 // ============================================================
 
+// --- Zones de sol colorées (par-dessus le sol de base) ---
+export const FLOOR_ZONES = [
+  // Zone EAU (port, au nord) — sera utilisée pour l'oxygène
+  { x: 0, z: -55, w: 100, d: 30, color: 0x0a4a8a, y: 0.05, type: 'water' },
+
+  // Jardins verts (ouest et est)
+  { x: -35, z: 5, w: 28, d: 28, color: 0x1e4d2b, y: 0.02, type: 'garden' },
+  { x: 35, z: 5, w: 28, d: 28, color: 0x1e4d2b, y: 0.02, type: 'garden' },
+
+  // Route principale (horizontale, au nord de la place)
+  { x: 0, z: -25, w: 120, d: 8, color: 0x2a2a3e, y: 0.03, type: 'road' },
+
+  // Route sud (horizontale, au sud des maisons)
+  { x: 0, z: 22, w: 120, d: 8, color: 0x2a2a3e, y: 0.03, type: 'road' },
+
+  // Route verticale (centre, relie les 2 routes)
+  { x: 0, z: 0, w: 8, d: 50, color: 0x2a2a3e, y: 0.03, type: 'road' },
+
+  // Place centrale (pavée)
+  { x: 0, z: 5, w: 18, d: 18, color: 0x3a3a52, y: 0.04, type: 'plaza' },
+];
+
+// ============================================================
+// MODÈLES — Format: [modele, x, y, z, rotY?, scale?]
+// ============================================================
 export const MAP_CONFIG = {
-  // --- Bâtiments (disposés en carré autour de la place) ---
+  // --- Bâtiments alignés le long des routes ---
   buildings: [
-    // Coin Nord-Ouest
-    ['buildings/House_by_Quaternius.glb', -18, 0, -18, Math.PI / 4, 0.4],
-    // Coin Nord-Est
-    ['buildings/House_by_Quaternius.glb', 18, 0, -18, -Math.PI / 4, 0.4],
-    // Coin Sud-Ouest
-    ['buildings/House_by_Quaternius.glb', -18, 0, 18, (3 * Math.PI) / 4, 0.4],
-    // Coin Sud-Est (un peu en retrait pour laisser le spawn)
-    ['buildings/House_by_Quaternius.glb', 20, 0, 20, -Math.PI / 2, 0.4],
+    // Rangée sud (4 maisons alignées)
+    ['buildings/House_by_Quaternius.glb', -30, 0, 12, Math.PI, 0.5],
+    ['buildings/House_by_Quaternius.glb', -12, 0, 12, Math.PI, 0.5],
+    ['buildings/House_by_Quaternius.glb', 12, 0, 12, Math.PI, 0.5],
+    ['buildings/House_by_Quaternius.glb', 30, 0, 12, Math.PI, 0.5],
 
-    // Deux huttes sur les côtés (cabanes de marché)
-    ['buildings/Hut_by_Quaternius.glb', -30, 0, 0, Math.PI / 2, 1.2],
-    ['buildings/Hut_by_Quaternius.glb', 30, 0, 0, -Math.PI / 2, 1.2],
+    // Rangée nord (2 huttes de marché)
+    ['buildings/Hut_by_Quaternius.glb', -20, 0, -12, 0, 1.5],
+    ['buildings/Hut_by_Quaternius.glb', 20, 0, -12, 0, 1.5],
 
-    // Port + Dock au fond (au nord)
-    ['buildings/Dock_by_Quaternius.glb', 0, 0, -35, 0, 0.8],
-    ['buildings/Port_by_Quaternius.glb', -15, 0, -40, 0, 0.6],
+    // Zone port (au nord)
+    ['buildings/Dock_by_Quaternius.glb', -15, 0, -38, 0, 0.8],
+    ['buildings/Port_by_Quaternius.glb', 15, 0, -38, 0, 0.6],
 
-    // Murs de pierre (barrières naturelles)
-    ['buildings/Stone_Wall_by_Quaternius.glb', -35, 0, -15, Math.PI / 2, 0.8],
-    ['buildings/Stone_Wall_by_Quaternius.glb', 35, 0, -15, Math.PI / 2, 0.8],
-    ['buildings/Stone_Wall_by_Quaternius.glb', -35, 0, 15, Math.PI / 2, 0.8],
-    ['buildings/Stone_Wall_by_Quaternius.glb', 35, 0, 15, Math.PI / 2, 0.8],
+    // Murs de pierre (limites est/ouest)
+    ['buildings/Stone_Wall_by_Quaternius.glb', -55, 0, -15, Math.PI / 2, 0.8],
+    ['buildings/Stone_Wall_by_Quaternius.glb', -55, 0, 15, Math.PI / 2, 0.8],
+    ['buildings/Stone_Wall_by_Quaternius.glb', 55, 0, -15, Math.PI / 2, 0.8],
+    ['buildings/Stone_Wall_by_Quaternius.glb', 55, 0, 15, Math.PI / 2, 0.8],
 
     // Mur en bois (entrée sud)
-    ['buildings/Wooden_Wall_by_Quaternius.glb', -8, 0, 32, 0, 0.8],
-    ['buildings/Wooden_Wall_by_Quaternius.glb', 8, 0, 32, 0, 0.8],
+    ['buildings/Wooden_Wall_by_Quaternius.glb', -10, 0, 40, 0, 0.8],
+    ['buildings/Wooden_Wall_by_Quaternius.glb', 10, 0, 40, 0, 0.8],
   ],
 
-  // --- Nature (bordures + décoration) ---
+  // --- Nature (mini-forêts dans les jardins + déco) ---
   nature: [
-    // Sapins aux 4 coins extérieurs (créent une "forêt" protectrice)
-    ['nature/Pine_by_Quaternius.glb', -40, 0, -30, 0, 0.7],
-    ['nature/Pine_by_Quaternius.glb', 40, 0, -30, 1.5, 0.7],
-    ['nature/Pine_by_Quaternius.glb', -40, 0, 30, 0.5, 0.7],
-    ['nature/Pine_by_Quaternius.glb', 40, 0, 30, 2, 0.7],
+    // MINI-FORÊT OUEST (jardin vert, arbres serrés pour se cacher)
+    ['nature/Pine_by_Quaternius.glb', -42, 0, -5, 0, 0.6],
+    ['nature/Pine_by_Quaternius.glb', -38, 0, 0, 1.2, 0.6],
+    ['nature/Pine_by_Quaternius.glb', -42, 0, 8, 0.5, 0.6],
+    ['nature/Pine_by_Quaternius.glb', -32, 0, -3, 2, 0.6],
+    ['nature/Pine_by_Quaternius.glb', -32, 0, 12, 1, 0.6],
+    ['nature/Pine_by_Quaternius.glb', -40, 0, 15, 0.8, 0.6],
+    ['nature/Twisted_Tree_by_Quaternius.glb', -36, 0, 6, 1.5, 0.5],
+    ['nature/Twisted_Tree_by_Quaternius.glb', -45, 0, 2, 0, 0.5],
 
-    // Sapins le long des bords
-    ['nature/Pine_by_Quaternius.glb', -25, 0, -30, 1, 0.6],
-    ['nature/Pine_by_Quaternius.glb', 25, 0, -30, 0, 0.6],
-    ['nature/Pine_by_Quaternius.glb', -25, 0, 30, 0, 0.6],
-    ['nature/Pine_by_Quaternius.glb', 25, 0, 30, 1.2, 0.6],
+    // MINI-FORÊT EST (jardin vert, miroir)
+    ['nature/Pine_by_Quaternius.glb', 42, 0, -5, 0, 0.6],
+    ['nature/Pine_by_Quaternius.glb', 38, 0, 0, 1.2, 0.6],
+    ['nature/Pine_by_Quaternius.glb', 42, 0, 8, 0.5, 0.6],
+    ['nature/Pine_by_Quaternius.glb', 32, 0, -3, 2, 0.6],
+    ['nature/Pine_by_Quaternius.glb', 32, 0, 12, 1, 0.6],
+    ['nature/Pine_by_Quaternius.glb', 40, 0, 15, 0.8, 0.6],
+    ['nature/Twisted_Tree_by_Quaternius.glb', 36, 0, 6, 1.5, 0.5],
+    ['nature/Twisted_Tree_by_Quaternius.glb', 45, 0, 2, 0, 0.5],
 
-    // Arbres morts (ambiance post-apo, sur la place)
-    ['nature/Dead_Tree_by_Quaternius.glb', -8, 0, -8, 0, 0.8],
-    ['nature/Dead_Tree_by_Quaternius.glb', 8, 0, -8, 1, 0.8],
-    ['nature/Dead_Tree_by_Quaternius.glb', -8, 0, 8, 2, 0.8],
+    // Arbres morts (déco dans la place centrale)
+    ['nature/Dead_Tree_by_Quaternius.glb', -6, 0, 0, 0, 0.5],
+    ['nature/Dead_Tree_by_Quaternius.glb', 6, 0, 0, 1, 0.5],
 
-    // Arbres tordus (côté est)
-    ['nature/Twisted_Tree_by_Quaternius.glb', 15, 0, -25, 0.5, 0.7],
-    ['nature/Twisted_Tree_by_Quaternius.glb', -15, 0, 25, 1.5, 0.7],
+    // Rochers (bords)
+    ['nature/Rocks_by_Quaternius.glb', 0, 0, 40, 0, 0.6],
+    ['nature/Rocks_by_Quaternius.glb', -50, 0, 25, 1, 0.6],
+    ['nature/Rocks_by_Quaternius.glb', 50, 0, 25, 2, 0.6],
 
-    // Rochers (déco)
-    ['nature/Rocks_by_Quaternius.glb', -12, 0, -22, 0, 0.7],
-    ['nature/Rocks_by_Quaternius.glb', 12, 0, 22, 1, 0.7],
-    ['nature/Rocks_by_Quaternius.glb', 22, 0, -5, 2, 0.6],
-
-    // Fleurs / plantes (déco fine sur la place)
-    ['nature/Lis_by_Quaternius.glb', 5, 0, 5, 0, 1],
-    ['nature/Lis_by_Quaternius.glb', -5, 0, 5, 0.7, 1],
-    ['nature/Lis_by_Quaternius.glb', 5, 0, -5, 1.4, 1],
-    ['nature/Plant_Big_by_Quaternius.glb', -3, 0, -15, 0, 0.8],
-    ['nature/Plant_by_Quaternius.glb', 3, 0, -15, 0, 1],
+    // Fleurs (déco autour du spawn)
+    ['nature/Lis_by_Quaternius.glb', -4, 0, 30, 0, 1],
+    ['nature/Lis_by_Quaternius.glb', 4, 0, 30, 0.7, 1],
+    ['nature/Lis_by_Quaternius.glb', -8, 0, 28, 1.4, 1],
+    ['nature/Lis_by_Quaternius.glb', 8, 0, 28, 2, 1],
   ],
 
-  // --- Props urbains (la place centrale) ---
+  // --- Props (panneaux, barils, décos urbaines) ---
   props: [
-    // Panneau de ville au centre (point de repère)
-    ['props/Town_Sign_by_Quaternius.glb', 0, 0, -12, 0, 1],
+    // Panneau de ville au centre de la place
+    ['props/Town_Sign_by_Quaternius.glb', 0, 0, 5, 0, 1],
 
-    // Groupe de barils (côté ouest)
-    ['props/Barrel_by_Quaternius.glb', -10, 0, 2, 0, 1],
-    ['props/Barrel_by_Quaternius.glb', -10.5, 0, 3, 0, 1],
-    ['props/Barrel_by_Quaternius.glb', -9.5, 0, 3.5, 0, 1],
+    // Barils (déco entre les maisons)
+    ['props/Barrel_by_Quaternius.glb', -22, 0, 18, 0, 1],
+    ['props/Barrel_by_Quaternius.glb', -21, 0, 19, 0, 1],
+    ['props/Barrel_by_Quaternius.glb', 22, 0, 18, 0, 1],
+    ['props/Barrel_by_Quaternius.glb', 21, 0, 19, 0, 1],
 
-    // Bouche d'incendie (centre)
-    ['props/Fire_Hydrant_by_Quaternius.glb', 3, 0, 0, 0, 1],
+    // Bouche d'incendie (place centrale)
+    ['props/Fire_Hydrant_by_Quaternius.glb', 4, 0, 8, 0, 1],
+
+    // Cônes sur la route principale
+    ['props/Traffic_Cone_by_Quaternius.glb', -15, 0, -25, 0, 1],
+    ['props/Traffic_Cone_by_Quaternius.glb', -13, 0, -25, 0, 1],
+    ['props/Traffic_Cone_by_Quaternius.glb', 15, 0, -25, 0, 1],
+    ['props/Traffic_Cone_by_Quaternius.glb', 17, 0, -25, 0, 1],
+
+    // Barrière de chantier sur route sud
+    ['props/Traffic_Barrier_by_Quaternius.glb', -5, 0, 22, 0, 1],
+    ['props/Traffic_Barrier_by_Quaternius.glb', 5, 0, 22, 0, 1],
+
+    // Lampadaires aux coins de la place
+    ['props/Street_Light_by_Quaternius.glb', -12, 0, -2, Math.PI / 4, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', 12, 0, -2, -Math.PI / 4, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', -12, 0, 15, (3 * Math.PI) / 4, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', 12, 0, 15, -Math.PI / 4, 0.5],
+
+    // Lampadaires le long des routes
+    ['props/Street_Light_by_Quaternius.glb', -40, 0, -22, 0, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', 40, 0, -22, 0, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', -40, 0, 22, 0, 0.5],
+    ['props/Street_Light_by_Quaternius.glb', 40, 0, 22, 0, 0.5],
+
+    // Container rouge (entrepôt est)
+    ['props/Container_Red_by_Quaternius.glb', 40, 0, -15, Math.PI / 2, 1],
+
+    // Bûches + roues (déco)
+    ['props/Wood_Log_by_Quaternius.glb', -8, 0, 18, 0, 1],
+    ['props/Wheels_Stack_by_Quaternius.glb', 8, 0, 18, 0, 1],
 
     // Poubelles
-    ['props/Trash_Bags_by_Quaternius.glb', -4, 0, 8, 0, 1],
-    ['props/Trash_Bags_by_Quaternius.glb', 4, 0, 8, 1, 1],
-
-    // Cônes de chantier (barrière visuelle)
-    ['props/Traffic_Cone_by_Quaternius.glb', -2, 0, 12, 0, 1],
-    ['props/Traffic_Cone_by_Quaternius.glb', 0, 0, 12, 0, 1],
-    ['props/Traffic_Cone_by_Quaternius.glb', 2, 0, 12, 0, 1],
-
-    // Barrière de chantier
-    ['props/Traffic_Barrier_by_Quaternius.glb', 0, 0, 14, 0, 1],
-
-    // Lampadaires (éclairage symbolique de la place)
-    ['props/Street_Light_by_Quaternius.glb', -14, 0, -14, Math.PI / 4, 1],
-    ['props/Street_Light_by_Quaternius.glb', 14, 0, -14, -Math.PI / 4, 1],
-    ['props/Street_Light_by_Quaternius.glb', -14, 0, 14, (3 * Math.PI) / 4, 1],
-    ['props/Street_Light_by_Quaternius.glb', 14, 0, 14, -Math.PI / 4, 1],
-
-    // Container rouge (côté est, comme entrepôt)
-    ['props/Container_Red_by_Quaternius.glb', 22, 0, -8, Math.PI / 2, 1],
-
-    // Bûche / roues (déco)
-    ['props/Wood_Log_by_Quaternius.glb', -12, 0, -5, 0, 1],
-    ['props/Wheels_Stack_by_Quaternius.glb', 12, 0, 5, 0, 1],
+    ['props/Trash_Bags_by_Quaternius.glb', -20, 0, 20, 0, 1],
+    ['props/Trash_Bags_by_Quaternius.glb', 20, 0, 20, 1, 1],
   ],
 
-  // --- Véhicules (épaves) ---
+  // --- Véhicules (garés sur les routes) ---
   vehicles: [
-    // Voiture au nord-est (garée devant une maison)
-    ['vehicles/Sports_Car_by_Quaternius.glb', 15, 0, -22, Math.PI / 2, 0.5],
-    // Voiture blindée au sud-ouest (abandonnée)
-    ['vehicles/Sports_Car_Armored_by_Quaternius.glb', -20, 0, 22, -Math.PI / 3, 0.5],
-    // Camion blindé au fond (près du port)
-    ['vehicles/Truck_Armored_by_Quaternius.glb', -22, 0, -30, Math.PI / 6, 0.5],
+    // Sur la route principale
+    ['vehicles/Sports_Car_by_Quaternius.glb', -25, 0, -25, Math.PI / 2, 0.5],
+    ['vehicles/Sports_Car_Armored_by_Quaternius.glb', 20, 0, -25, -Math.PI / 2, 0.5],
+
+    // Sur la route sud
+    ['vehicles/Sports_Car_by_Quaternius.glb', -18, 0, 22, Math.PI / 2, 0.5],
+    ['vehicles/Sports_Car_by_Quaternius.glb', 18, 0, 22, -Math.PI / 2, 0.5],
+
+    // Camion blindé près du port
+    ['vehicles/Truck_Armored_by_Quaternius.glb', -30, 0, -35, Math.PI / 4, 0.5],
   ],
 };
 
-// Position de spawn du joueur (sud de la place)
-export const SPAWN_POINT = { x: 0, y: 1.7, z: 20 };
+// Spawn du joueur (sud, face à la place)
+export const SPAWN_POINT = { x: 0, y: 1.7, z: 35 };
