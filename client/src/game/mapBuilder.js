@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { loadModel, cloneModel } from './assetLoader.js';
-import { MAP_CONFIG, FLOOR_ZONES } from './mapConfig.js';
+import { MAP_CONFIG, FLOOR_ZONES, EXTRA_PROPS } from './mapConfig.js';
 
 export async function buildMapFromModels(scene) {
   const colliders = [];
 
   // 1. Sol de base (grand, sombre)
   const baseFloor = new THREE.Mesh(
-    new THREE.PlaneGeometry(140, 140),
+    new THREE.PlaneGeometry(300, 300),
     new THREE.MeshStandardMaterial({ color: 0x0f0f1a, roughness: 0.9 })
   );
   baseFloor.rotation.x = -Math.PI / 2;
@@ -34,37 +34,47 @@ export async function buildMapFromModels(scene) {
     }
   }
 
-  // 3. Collecte tous les modèles à charger (sans doublons)
-  const allPaths = new Set();
+  // 3. Collecte TOUS les modèles à charger (sans doublons)
+  const allEntries = [];
   for (const category of Object.keys(MAP_CONFIG)) {
     for (const entry of MAP_CONFIG[category]) {
-      allPaths.add(entry[0]);
+      allEntries.push(entry);
+    }
+  }
+  if (EXTRA_PROPS && Array.isArray(EXTRA_PROPS)) {
+    for (const entry of EXTRA_PROPS) {
+      allEntries.push(entry);
     }
   }
 
+  const allPaths = new Set();
+  for (const entry of allEntries) {
+    allPaths.add(entry[0]);
+  }
+
+  // 4. Préchargement en parallèle
   console.log(`📦 Chargement de ${allPaths.size} modèles...`);
   const loadPromises = Array.from(allPaths).map((p) => loadModel(p));
   await Promise.allSettled(loadPromises);
   console.log('✅ Tous les modèles sont chargés');
 
-  // 4. Placement de chaque instance
-  for (const category of Object.keys(MAP_CONFIG)) {
-    for (const entry of MAP_CONFIG[category]) {
-      const [path, x, y, z, rotY = 0, scale = 1] = entry;
+  // 5. Placement de chaque instance
+  for (const entry of allEntries) {
+    const [path, x, y, z, rotY = 0, scale = 1] = entry;
 
-      try {
-        const model = await loadModel(path);
-        const clone = cloneModel(model);
-        clone.position.set(x, y, z);
-        clone.rotation.y = rotY;
-        clone.scale.setScalar(scale);
-        scene.add(clone);
+    try {
+      const model = await loadModel(path);
+      const clone = cloneModel(model);
+      clone.position.set(x, y, z);
+      clone.rotation.y = rotY;
+      clone.scale.setScalar(scale);
+      scene.add(clone);
 
-        const box = new THREE.Box3().setFromObject(clone);
-        colliders.push(box);
-      } catch (e) {
-        console.warn(`⚠️ Impossible de placer ${path}:`, e.message);
-      }
+      // Créer un collider (Box3) pour chaque objet
+      const box = new THREE.Box3().setFromObject(clone);
+      colliders.push(box);
+    } catch (e) {
+      console.warn(`⚠️ Impossible de placer ${path}:`, e.message);
     }
   }
 
