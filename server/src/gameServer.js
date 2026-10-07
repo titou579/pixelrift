@@ -168,9 +168,16 @@ export function setupGameServer(io) {
       joinRoom(code.toUpperCase(), username, cb);
     });
 
-    function joinRoom(code, username, cb) {
-      if (currentRoom) leaveRoom();
-      const room = rooms.get(code);
+function joinRoom(code, username, cb) {
+  if (currentRoom) leaveRoom();
+  let room = rooms.get(code);
+
+  // 🛡️ Race condition : le watchdog a pu supprimer le salon entre-temps
+  if (!room) {
+    room = createRoom();
+    rooms.set(code, room);
+    console.log(`🔧 Salon ${code} recréé (avait été supprimé par le watchdog)`);
+  }
 
       // 🧹 Kick les éventuels fantômes du même username
       for (const [oldId, oldP] of Array.from(room.players)) {
