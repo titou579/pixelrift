@@ -1,61 +1,41 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
+const BASE = import.meta.env.BASE_URL || '/';
 
 /**
- * Charge un modèle .glb depuis /public/models/
- * @param {string} path - Chemin relatif SANS "models/", ex: 'buildings/House.glb'
- * @returns {Promise<THREE.Group>}
+ * Charge un modèle .glb depuis /public/
+ * @param {string} path - Chemin relatif depuis /public/, ex: 'city/LES_ASSETS/Bench.glb'
  */
 export function loadModel(path) {
-  if (cache.has(path)) {
-    return Promise.resolve(cache.get(path));
-  }
-  return new Promise((resolve, reject) => {
+  if (cache.has(path)) return cache.get(path);
+
+  const url = `${BASE}${path}`.replace(/\/{2,}/g, '/');
+  const promise = new Promise((resolve, reject) => {
     loader.load(
-      `/models/${path}`,
-      (gltf) => {
-        // Optimisation : désactive les ombres sur les gros objets pour la perf
-        gltf.scene.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = false;
-            child.receiveShadow = false;
-            // Figé pour économiser du CPU
-            child.matrixAutoUpdate = false;
-          }
-        });
-        cache.set(path, gltf.scene);
-        resolve(gltf.scene);
-      },
+      url,
+      (gltf) => resolve(gltf.scene),
       undefined,
       (err) => {
-        console.error(`❌ Échec chargement ${path}:`, err);
+        console.error(
+          `❌ Échec chargement ${url}\n` +
+          `   Vérifie : chemin, casse (majuscules), extension.`,
+          err
+        );
         reject(err);
       }
     );
   });
+  cache.set(path, promise);
+  return promise;
 }
 
-/**
- * Clone un modèle chargé (pour placer plusieurs instances)
- */
 export function cloneModel(model) {
-  const clone = model.clone(true);
-  clone.traverse((child) => {
-    if (child.isMesh) {
-      child.castShadow = false;
-      child.receiveShadow = false;
-      child.matrixAutoUpdate = false;
-    }
-  });
-  clone.updateMatrixWorld(true);
-  return clone;
+  return SkeletonUtils.clone(model);
 }
 
-/**
- * Précharge une liste de modèles en parallèle
- */
 export async function preloadModels(paths) {
   const results = await Promise.allSettled(paths.map((p) => loadModel(p)));
   const failed = results.filter((r) => r.status === 'rejected');
