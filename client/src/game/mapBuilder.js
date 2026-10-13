@@ -77,7 +77,23 @@ export async function buildMapFromModels(scene) {
       console.warn(`⚠️ Impossible de placer ${path}:`, e.message);
     }
   }
-
+  // === DIAGNOSTIC : liste tous les gros meshes de la scène ===
+  console.log('=== 🔍 MESHES DE PLUS DE 2 MÈTRES ===');
+  scene.traverse((obj) => {
+    if (obj.isMesh) {
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = box.getSize(new THREE.Vector3());
+      if (size.x > 2 || size.y > 2 || size.z > 2) {
+        const pos = box.getCenter(new THREE.Vector3());
+        console.log(
+          `🔍 ${obj.name || 'sans-nom'} | ` +
+          `taille ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)} | ` +
+          `pos ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`
+        );
+      }
+    }
+  });
+  console.log('=== FIN DIAGNOSTIC ===');
   console.log(`🗺️  Map construite : ${colliders.length} colliders`);
   return { colliders };
 }
